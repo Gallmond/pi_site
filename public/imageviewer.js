@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 	var frame = document.createElement('div');
 	window.frameAccess = frame;
 	window.prevSeg = 0;
-	frameHolder.addEventListener("mousemove", function(e){
+	var scrollHandler = (e)=>{
 		console.log("mouse is moving");
 		var rect = e.target.getBoundingClientRect();
 		var x = e.clientX - rect.left; //x position within the element.
@@ -33,7 +33,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
 
 		db("x:"+x+" y:"+y+" seg:"+segment);
-	}, false);
+	}	
+
+	frameHolder.addEventListener("mousemove", scrollHandler, false);
+	frameHolder.addEventListener("touchmove", scrollHandler, false);
 
 	//  a holder
 	frame.className = "image_frame";

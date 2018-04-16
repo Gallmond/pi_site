@@ -32,6 +32,12 @@ app.use(function(req, res, next){
    });
 });
 
+// update images if needed
+app.use((req, res, next)=>{
+	updateImages()
+	next();
+});
+
 
 // === AWS start
 // === AWS start
@@ -61,9 +67,15 @@ s3.listObjectsV2(params, (err, data)=>{
 function updateImages(){
 	var now = new Date().valueOf();
 	if(now > inMemoryImageStore.updated - (1000*60*60*5)){ // five hours
+		console.log("images keys were recently cached");
 		return false;
+	}else{
+		console.log("fetching more recent keys");
 	}
-
+	var params = {
+		Bucket: process.env.AMAZON_BUCKETNAME,
+		Prefix: "2018" 
+	};
 	s3.listObjectsV2(params, (err, data)=>{
 		if(err){console.log(err, err.stack);} 
 		console.log("returned data:", data);
@@ -76,7 +88,6 @@ function updateImages(){
 			}
 		}
 
-		
 		inMemoryImageStore.mostRecentImages.reverse();
 		inMemoryImageStore.updated = now;
 	});
@@ -95,20 +106,6 @@ app.get('/test', (req,res)=>{
 
 app.get('/home', (req,res)=>{
 	console.log("hello");
-
-	// test image array
-	// images = [
-	// 	"20180416T080001.jpg",
-	// 	"20180416T090001.jpg",
-	// 	"20180416T100001.jpg",
-	// 	"20180416T110001.jpg",
-	// 	"20180416T120001.jpg",
-	// 	"20180416T130001.jpg",
-	// 	"20180416T140001.jpg",
-	// 	"20180416T150001.jpg",
-	// 	"20180416T160001.jpg",
-	// 	"20180416T170001.jpg"
-	// ];
 
 	images = inMemoryImageStore.mostRecentImages;
 
