@@ -2,6 +2,7 @@
 
 // aws
 AWS = require('aws-sdk');
+s3 = new AWS.S3();
 
 // express
 express = require('express');
@@ -38,35 +39,20 @@ app.use((req, res, next)=>{
 	next();
 });
 
-
-// === AWS start
-// === AWS start
+// in memory images
 var now = new Date().valueOf();
 inMemoryImageStore = {
 	updated: now,
 	mostRecentImages: []
 }
-var params = {
-	Bucket: process.env.AMAZON_BUCKETNAME,
-	Prefix: "2018" 
-};
-var s3 = new AWS.S3();
-s3.listObjectsV2(params, (err, data)=>{
-	if(err){console.log(err, err.stack);} 
-	console.log("returned data:", data);
+updateImages();
 
-	var contents = data.Contents;
-	for(var i = contents.length-1; i >= 0; i-- ){// reverse through images
-		inMemoryImageStore.mostRecentImages.push(contents[i].Key);
-		if(inMemoryImageStore.mostRecentImages.length>=10){
-			break;
-		}
-	}
-	inMemoryImageStore.mostRecentImages.reverse();
-});
+
+
+
 function updateImages(){
 	var now = new Date().valueOf();
-	if(now > inMemoryImageStore.updated - (1000*60*60*5)){ // five hours
+	if(now > inMemoryImageStore.updated - (1000*60*60)){ // one hours
 		console.log("images keys were recently cached");
 		return false;
 	}else{

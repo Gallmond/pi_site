@@ -12,7 +12,5 @@
     "aws-sdk": "^2.224.1",
     "ejs": "^2.5.8",
     "express": "^4.16.3",
-    "express-session": "^1.15.6",
-    "mongodb": "^3.0.6"
   }
 }
