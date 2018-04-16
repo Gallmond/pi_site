@@ -8,9 +8,6 @@ s3 = new AWS.S3();
 express = require('express');
 app = express();
 
-// database
-mongo = require('mongodb');
-
 // templates
 ejs = require('ejs');
 
@@ -45,14 +42,14 @@ inMemoryImageStore = {
 	updated: now,
 	mostRecentImages: []
 }
-updateImages();
+updateImages(true);
 
 
 
 
-function updateImages(){
+function updateImages(_force){
 	var now = new Date().valueOf();
-	if(now > inMemoryImageStore.updated - (1000*60*60)){ // one hours
+	if(now > inMemoryImageStore.updated - (1000*60*60) && _force!=true){ // one hours
 		console.log("images keys were recently cached");
 		return false;
 	}else{
