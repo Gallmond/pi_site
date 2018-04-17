@@ -46,46 +46,52 @@ updateImagesV2(true);
 
 
 function updateImagesV2(_force){
-	var now = new Date().valueOf();
-	if(inMemoryImageStore.updated > now - (1000*60*60) && _force!=true ){ // one hours
-		console.log("images keys were recently cached");
-		return false;
-	}else{
-		console.log("fetching more recent keys");
-	}
+	return new Promise((resolve, reject)=>{
 
-	// ==== get existing buckets
-	s3.listBuckets({}, function(err, data) {
-		if(err){console.log(err, err.stack);return false;}
+		var now = new Date().valueOf();
+		if(inMemoryImageStore.updated > now - (1000*60*60) && _force!=true ){ // one hours
+			console.log("images keys were recently cached");
+			return false;
+		}else{
+			console.log("fetching more recent keys");
+		}
 
-		for (var bi = data.Buckets.length - 1; bi >= 0; --bi){
-			Bucket = data.Buckets[bi];
-			// skip static
-			if(Bucket.Name=="gavin.taraplantwatcher.img.static"){
-				continue;
-			}
-			// ==== get all keys in this bucket
-			var params = {
-				Bucket: Bucket.Name
-			};
-			s3.listObjects(params, function(err, data) {
-				if(err){console.log(err, err.stack);return false;}
+		// ==== get existing buckets
+		s3.listBuckets({}, function(err, data) {
+			if(err){console.log(err, err.stack);return false;}
 
-				for (var ci = data.Contents.length - 1; ci >= 0; --ci){
-					storedObject = data.Contents[ci];
-					var toPush = {bucket:data.Name, key:storedObject.Key};
-					console.log("adding: ", toPush);
-					inMemoryImageStore.mostRecentImages.push(toPush);
-					inMemoryImageStore.updated = new Date().valueOf();
-				}// for each object end
-			});
-		}// for each bucket end
+			for (var bi = data.Buckets.length - 1; bi >= 0; --bi){
+				Bucket = data.Buckets[bi];
+				// skip static
+				if(Bucket.Name=="gavin.taraplantwatcher.img.static"){
+					continue;
+				}
+				// ==== get all keys in this bucket
+				var params = {
+					Bucket: Bucket.Name
+				};
+				s3.listObjects(params, function(err, data) {
+					if(err){console.log(err, err.stack);return false;}
 
-		return true;
+					for (var ci = data.Contents.length - 1; ci >= 0; --ci){
+						storedObject = data.Contents[ci];
+						var toPush = {bucket:data.Name, key:storedObject.Key};
+						console.log("adding: ", toPush);
+						inMemoryImageStore.mostRecentImages.push(toPush);
+						inMemoryImageStore.updated = new Date().valueOf();
 
-	});// list buckets end
+						if(ci==0){
+							return resolve({success:"forced refresh"});
+						}
+					}// for each object end
+				});
+			}// for each bucket end
 
+			return true;
 
+		});// list buckets end
+
+	});
 }
 
 
@@ -98,8 +104,18 @@ app.get('/test', (req,res)=>{
 });
 
 app.get('/home', (req,res)=>{
-	console.log("hello");
-	res.render("index", {imageInfo:inMemoryImageStore});
+	console.log("hello", req.query);
+	if(req.query.refresh == "true"){
+		updateImagesV2(true).then((resOb, rejOb)=>{
+			// resolve
+			res.render("index", {imageInfo:inMemoryImageStore});
+		});
+
+	}else{
+		res.render("index", {imageInfo:inMemoryImageStore});	
+	}
+	
+	
 });
 
 // any uncaptured ones
