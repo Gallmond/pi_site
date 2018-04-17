@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 	var frame = document.createElement('div');
 	window.frameAccess = frame;
 	window.prevSeg = 0;
+	window.maxSegs = <%= imageInfo.mostRecentImages.length %>;
 	var scrollHandler = (e)=>{
 		console.log("mouse is moving");
 		var rect = e.target.getBoundingClientRect();
@@ -20,9 +21,19 @@ document.addEventListener('DOMContentLoaded', ()=>{
 		x = Math.ceil(x);
 		y = Math.ceil(y);
 
-		var segment = ((x/640)*100);
-		segment = segment/10;
-		segment = Math.ceil(segment);
+		// % of distance along the line the point is
+		var cursor_pt = ((x/640)*100); // where 640 is line length
+		var cursor_pt = Math.ceil(cursor_pt); // rounded up
+
+		// size of segments
+		var segment_size = 100/window.maxSegs; 
+
+		// number of the segment the point is in
+		var current_segment = Math.ceil(cursor_pt/segment_size); 
+
+		var segment = current_segment;
+
+		db("x:"+x+" y:"+y+"<br/>cur%:"+cursor_pt+" seg:"+segment+"/"+window.maxSegs);
 
 		if(segment-1 != window.prevSeg){
 			window.frameAccess.children[segment-1].style.display = "";
@@ -32,7 +43,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 		
 
 
-		db("x:"+x+" y:"+y+" seg:"+segment);
+		
 	}	
 
 	frameHolder.addEventListener("mousemove", scrollHandler, false);
@@ -45,9 +56,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
 	// for each image, create an image tag
 	var imageTags = [];
-	<%_ for(var i = 0; i < images.length; i++){ -%>
+	<%_ for (var i = imageInfo.mostRecentImages.length - 1; i >= 0; --i){ -%>
+	// <%= imageInfo.mostRecentImages[i].key %>
 	var image_<%= i%> = document.createElement('img');	
-	image_<%= i%>.src = "https://s3.eu-west-2.amazonaws.com/gavinspicamstorage/<%= images[i] %>";
+	image_<%= i%>.src = "https://s3.eu-west-2.amazonaws.com/<%= imageInfo.mostRecentImages[i].bucket %>/<%= imageInfo.mostRecentImages[i].key %>";
 	<%_ if(i!=0){ -%>
 	image_<%= i%>.style.display = "none";
 	<%_ } -%>

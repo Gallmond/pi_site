@@ -30,53 +30,63 @@ app.use(function(req, res, next){
    });
 });
 
+// in memory images
+inMemoryImageStore = {
+	updated: new Date().valueOf(),
+	mostRecentImages: []
+};
+
 // update images if needed
 app.use((req, res, next)=>{
-	updateImages()
+	updateImagesV2();
 	next();
 });
-
-// in memory images
-var now = new Date().valueOf();
-inMemoryImageStore = {
-	updated: now,
-	mostRecentImages: []
-}
-updateImages(true);
+updateImagesV2(true);
 
 
 
-
-function updateImages(_force){
+function updateImagesV2(_force){
 	var now = new Date().valueOf();
-	if(now > inMemoryImageStore.updated - (1000*60*60) && _force!=true){ // one hours
+	if(inMemoryImageStore.updated > now - (1000*60*60) && _force!=true ){ // one hours
 		console.log("images keys were recently cached");
 		return false;
 	}else{
 		console.log("fetching more recent keys");
 	}
-	var params = {
-		Bucket: process.env.AMAZON_BUCKETNAME,
-		Prefix: "2018" 
-	};
-	s3.listObjectsV2(params, (err, data)=>{
-		if(err){console.log(err, err.stack);} 
-		console.log("returned data:", data);
 
-		var contents = data.Contents;
-		for(var i = contents.length-1; i >= 0; i-- ){// reverse through images
-			inMemoryImageStore.mostRecentImages.push(contents[i].Key);
-			if(inMemoryImageStore.mostRecentImages.length>=10){
-				break;
+	// ==== get existing buckets
+	s3.listBuckets({}, function(err, data) {
+		if(err){console.log(err, err.stack);return false;}
+
+		for (var bi = data.Buckets.length - 1; bi >= 0; --bi){
+			Bucket = data.Buckets[bi];
+			// skip static
+			if(Bucket.Name=="gavin.taraplantwatcher.img.static"){
+				continue;
 			}
-		}
+			// ==== get all keys in this bucket
+			var params = {
+				Bucket: Bucket.Name
+			};
+			s3.listObjects(params, function(err, data) {
+				if(err){console.log(err, err.stack);return false;}
 
-		inMemoryImageStore.mostRecentImages.reverse();
-		inMemoryImageStore.updated = now;
-	});
+				for (var ci = data.Contents.length - 1; ci >= 0; --ci){
+					storedObject = data.Contents[ci];
+					var toPush = {bucket:data.Name, key:storedObject.Key};
+					console.log("adding: ", toPush);
+					inMemoryImageStore.mostRecentImages.push(toPush);
+					inMemoryImageStore.updated = new Date().valueOf();
+				}// for each object end
+			});
+		}// for each bucket end
+
+		return true;
+
+	});// list buckets end
+
+
 }
-// === AWS start
-// === AWS start
 
 
 
@@ -89,10 +99,7 @@ app.get('/test', (req,res)=>{
 
 app.get('/home', (req,res)=>{
 	console.log("hello");
-
-	images = inMemoryImageStore.mostRecentImages;
-
-	res.render("index", {images:images});
+	res.render("index", {imageInfo:inMemoryImageStore});
 });
 
 // any uncaptured ones
