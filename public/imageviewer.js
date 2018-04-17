@@ -13,7 +13,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
 	window.prevSeg = 0;
 	window.maxSegs = <%= imageInfo.mostRecentImages.length %>;
 	var scrollHandler = (e)=>{
-		console.log("mouse is moving");
 		var rect = e.target.getBoundingClientRect();
 		var x = e.clientX - rect.left; //x position within the element.
 		var y = e.clientY - rect.top;  //y position within the element.
@@ -31,7 +30,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 		// number of the segment the point is in
 		var current_segment = Math.ceil(cursor_pt/segment_size); 
 
-		var segment = current_segment;
+		var segment = (current_segment!=0?current_segment:1);
 
 		db("x:"+x+" y:"+y+"<br/>cur%:"+cursor_pt+" seg:"+segment+"/"+window.maxSegs);
 
@@ -65,6 +64,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
 	<%_ } -%>
 	imageTags.push(image_<%= i%>);
 	<%_ } -%>
+
+	console.log("created image tags: ", imageTags.length);
 
 	// put image tags into frame
 	for(var i = 0; i < imageTags.length; i++){
