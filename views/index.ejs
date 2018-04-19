@@ -60,7 +60,7 @@
 			<h1>Welcome to Taraplantwatcher</h1>
 			Here's the most recent image:
 			<div class="recent_image_holder">
-				<img src="https://s3.eu-west-2.amazonaws.com/gavin.taraplantwatcher.img.static/recent.jpg" />
+				<img src="https://s3.eu-west-2.amazonaws.com/<%= imageInfo.mostRecentImages[0].bucket+"/"+imageInfo.mostRecentImages[0].key %>" />
 			</div>
 
 			<h1>Here's some older ones, mouseover to scroll</h1>

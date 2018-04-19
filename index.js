@@ -41,10 +41,15 @@ app.use((req, res, next)=>{
 	updateImagesV2();
 	next();
 });
+
+// on first load
 updateImagesV2(true);
 
 
-
+function setImages(_keysArray){
+	inMemoryImageStore.mostRecentImages = _keysArray;
+	inMemoryImageStore.updated = new Date().valueOf();
+}
 function updateImagesV2(_force){
 	return new Promise((resolve, reject)=>{
 
@@ -57,15 +62,18 @@ function updateImagesV2(_force){
 		}
 
 		// ==== get existing buckets
+		allKeys = [];
 		s3.listBuckets({}, function(err, data) {
 			if(err){console.log(err, err.stack);return false;}
 
+			// reverse throuch the buckets (ie, most recent is 0)
 			for (var bi = data.Buckets.length - 1; bi >= 0; --bi){
 				Bucket = data.Buckets[bi];
 				// skip static
 				if(Bucket.Name=="gavin.taraplantwatcher.img.static"){
 					continue;
 				}
+
 				// ==== get all keys in this bucket
 				var params = {
 					Bucket: Bucket.Name
@@ -73,14 +81,15 @@ function updateImagesV2(_force){
 				s3.listObjects(params, function(err, data) {
 					if(err){console.log(err, err.stack);return false;}
 
+					// reverse throuch the contents (ie, most recent is 0)
 					for (var ci = data.Contents.length - 1; ci >= 0; --ci){
 						storedObject = data.Contents[ci];
 						var toPush = {bucket:data.Name, key:storedObject.Key};
 						console.log("adding: ", toPush);
-						inMemoryImageStore.mostRecentImages.push(toPush);
-						inMemoryImageStore.updated = new Date().valueOf();
+						allKeys.push(toPush);
 
 						if(ci==0){
+							setImages(allKeys);
 							return resolve({success:"forced refresh"});
 						}
 					}// for each object end
