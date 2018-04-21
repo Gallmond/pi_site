@@ -38,19 +38,19 @@ inMemoryImageStore = {
 
 // update images if needed
 app.use((req, res, next)=>{
-	updateImagesV2();
+	updateImages();
 	next();
 });
 
 // on first load
-updateImagesV2(true);
+updateImages(true);
 
 
 function setImages(_keysArray){
 	inMemoryImageStore.mostRecentImages = _keysArray;
 	inMemoryImageStore.updated = new Date().valueOf();
 }
-function updateImagesV2(_force){
+function updateImages(_force){
 	return new Promise((resolve, reject)=>{
 
 		var now = new Date().valueOf();
@@ -107,15 +107,15 @@ function updateImagesV2(_force){
 
 // ==== routing start
 // ==== routing start
-app.get('/test', (req,res)=>{
+app.get('/', (req,res)=>{
 	console.log("hello");
 	res.send("hello");
 });
 
 app.get('/home', (req,res)=>{
-	console.log("hello", req.query);
+
 	if(req.query.refresh == "true"){
-		updateImagesV2(true).then((resOb, rejOb)=>{
+		updateImages(true).then((resOb, rejOb)=>{
 			// resolve
 			res.render("index", {imageInfo:inMemoryImageStore});
 		});

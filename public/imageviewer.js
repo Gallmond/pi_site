@@ -10,6 +10,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
 	db("ON");
 
+	var retrievedImages = <%- JSON.stringify(imageInfo.mostRecentImages) %>;
+
 	// get frame holder
 	var lightBoxHolder = document.getElementById('image_viewer_holder');
 	lightBoxHolder.style.display = "none"; // hide during load
@@ -17,7 +19,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 	var lightBox = document.createElement('div');
 	window.frameAccess = lightBox;
 	window.prevSeg = 0;
-	window.maxSegs = (<%= imageInfo.mostRecentImages.length %>>MAX_SEGS_ALLOWED?MAX_SEGS_ALLOWED:<%= imageInfo.mostRecentImages.length %>);
+	window.maxSegs = (retrievedImages.length>MAX_SEGS_ALLOWED?MAX_SEGS_ALLOWED:retrievedImages.length);
 	var scrollHandler = (e)=>{
 		var rect = e.target.getBoundingClientRect();
 		var x = e.clientX - rect.left; //x position within the element.
@@ -37,14 +39,22 @@ document.addEventListener('DOMContentLoaded', ()=>{
 		var current_segment = Math.ceil(cursor_pt/segment_size); 
 
 		var segment = (current_segment!=0?current_segment:1);
+		segment = (segment>window.maxSegs?window.maxSegs:segment);
 
 		db("x:"+x+" y:"+y+" cur%:"+cursor_pt+" seg:"+segment+"/"+window.maxSegs+"/"+MAX_SEGS_ALLOWED);
 
 		if(segment-1 != window.prevSeg){
 			// child to show
-			window.frameAccess.children[segment-1].style.display = "";;
-			window.frameAccess.children[window.prevSeg].style.display = "none";;
-			window.prevSeg = segment-1;
+			try{
+				window.frameAccess.children[segment-1].style.display = "";;
+				window.frameAccess.children[window.prevSeg].style.display = "none";;
+				window.prevSeg = segment-1;
+			}catch(e){
+				console.log("segment:", segment);
+				console.log("window.prevSeg:", window.prevSeg);
+				console.log(e);
+			}
+			
 		}
 		
 	}	
@@ -60,19 +70,17 @@ document.addEventListener('DOMContentLoaded', ()=>{
 	// for each image, create an image tag (note mostRecentImages are 0=newest)
 	var imageTags = [];
 	window.imageTags = imageTags;
-	<%_ for (var i = 0, l = imageInfo.mostRecentImages.length; i<l; i++){ -%>
-	// <%= imageInfo.mostRecentImages[i].key %>
-	var image_<%= i%> = document.createElement('img');	
-	image_<%= i%>.src = "https://s3.eu-west-2.amazonaws.com/<%= imageInfo.mostRecentImages[i].bucket %>/<%= imageInfo.mostRecentImages[i].key %>";
-	image_<%= i%>.dataset.bucketname = "<%= imageInfo.mostRecentImages[i].bucket %>";
-	image_<%= i%>.dataset.key = "<%= imageInfo.mostRecentImages[i].key %>";
-	image_<%= i%>.dataset.arrayIndex = "<%= i %>";
-	<%_ if(i!=0){ -%>
-	image_<%= i%>.style.display = "none";
-	<%_ } -%>
-	imageTags.push(image_<%= i%>);
-
-	<%_ } -%>
+	for (var i = 0, l = retrievedImages.length; i<l; i++){
+		var thisImage = document.createElement('img');	
+		thisImage.src = "https://s3.eu-west-2.amazonaws.com/"+retrievedImages[i].bucket+"/"+retrievedImages[i].key;
+		thisImage.dataset.bucketname = retrievedImages[i].bucket;
+		thisImage.dataset.key = retrievedImages[i].key;
+		thisImage.dataset.arrayIndex = i;
+		if(i!=0){
+			thisImage.style.display = "none";
+		}
+		imageTags.push(thisImage);
+	}
 	console.log("created image tags: ", imageTags.length);
 
 	// put image tags into lightBox
