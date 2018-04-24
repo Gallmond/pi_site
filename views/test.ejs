@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>Taraplantwatcher</title>
+
+	<style>
+		/* RESET START*/
+		<%- include('cssreset.css') %>
+		/* RESET START*/
+
+		html, body{
+
+		}
+
+
+		#body_wrapper{
+			height:100%;
+			width:100%;
+			background-color: red;
+		}
+
+		#content_wrapper{
+			width:66%;
+			background-color: cyan;
+			padding-top:50px;
+			margin:0px auto;
+		}
+
+		.recent_image_holder{
+			width: 100%;
+		}
+		.recent_image_holder img{
+			/* 640x480*/
+			display: block;
+			width:640px;
+			margin:0px auto;
+		}
+		.main_image_holder{
+			display: block;
+			width:640px;
+			margin:0px auto;
+		}
+		#debug{
+			position:fixed;
+			background-color: white;
+			width: 100px;
+			height: 100px;
+		}
+
+	</style>
+</head>
+<body>
+	<div id="debug" >
+		debug
+	</div>
+
+	<div id="body_wrapper">
+		<div id="content_wrapper">
+			<h1>Welcome to Taraplantwatcher</h1>
+
+
+			<h1>Here's some older ones, mouseover to scroll</h1>
+			<div id="image_viewer_holder" class="main_image_holder">
+			</div>
+
+
+			
+		</div>
+
+	</div>
+
+	<script type="text/javascript">
+	<%- include('../public/imageviewer_2.js') %>
+	</script>
+
+</body>
+</html>
