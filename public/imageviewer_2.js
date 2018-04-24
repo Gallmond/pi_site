@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 		document.getElementById('debug').innerHTML=_str;
 	}
 
-	var staticImageList = <%- imageInfo.mostRecentImages %>
+	var staticImageList = <%- JSON.stringify(imageInfo.mostRecentImages) %>
 
 	// create a new lightbox object,
 	var options = {
@@ -16,6 +16,28 @@ document.addEventListener('DOMContentLoaded', ()=>{
 		img_list: staticImageList,
 	};
 	window.lightBox = new lightBoxObject(options); 
+
+	// attach listeners
+	var addTenButton = document.getElementById("add_ten");
+	addTenButton.addEventListener("click", function(){
+		console.log("addTenButton clicked");
+		window.lightBox.addhistory(10);
+		console.log("addTenButton clicked end");
+	}, false);
+
+	// attach listeners
+	var showNthButton = document.getElementById("nth_show");
+	showNthButton.addEventListener("click", function(){
+		// get selected amnt
+		console.log("showNthButton clicked");
+		var selector = document.getElementById("nth_select");
+		var showEvery = selector.options[selector.selectedIndex].value;
+		if(showEvery<2) showEvery = false;
+		window.lightBox.onlyShow(showEvery);
+		console.log("showNthButton clicked end");
+	}, false);
+
+
 
 });// DOMContentLoaded end
 
@@ -83,7 +105,7 @@ var lightBoxObject = function(_options){
 			segmentToUse = segmentToUse*this.onlyshownth;
 		}
 
-		db("x:"+x+" segCount:"+this.segment_count+" sizeSeg:"+segment_size+" calcSec:"+cursor_segment+" inverted-1:"+segmentToUse);
+		db("x:"+x+" segCount:"+this.segment_count+" sizeSeg:"+segment_size+" calcSec:"+cursor_segment+" inverted:"+segmentToUse);
 
 		// can this segment be displayed?
 		if(this.img_list[segmentToUse].candisplay && segmentToUse != this.lastseg){
