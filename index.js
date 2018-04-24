@@ -55,7 +55,7 @@ function updateImages(_force){
 
 		var now = new Date().valueOf();
 		if(inMemoryImageStore.updated > now - (1000*60*60) && _force!=true ){ // one hours
-			var dateFromTS = new Date(inMemoryImageStore.updated).toUTCString;
+			var dateFromTS = new Date(inMemoryImageStore.updated).toUTCString();
 			console.log("images keys were recently cached ["+dateFromTS+"]");
 			return false;
 		}else{

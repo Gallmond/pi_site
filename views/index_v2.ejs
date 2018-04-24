@@ -41,7 +41,7 @@
 			width:640px;
 			margin:0px auto;
 		}
-		#controls{
+		#controls, #info_text{
 			width:640px;
 			margin:0px auto;
 		}
@@ -64,17 +64,20 @@
 
 	<div id="body_wrapper">
 		<div id="content_wrapper">
-			<h1>Welcome to Taraplantwatcher</h1>
 
-
-			<h1>Here's some older ones, mouseover to scroll</h1>
+			<div id="info_text">
+				<h1>Welcome to Taraplantwatcher</h1>
+				<h2>Mouseover to scroll</h2>
+				<p>Buttons to add images to history or only show Nth frames</p>
+			</div>
+			
 			<div id="image_viewer_holder" class="main_image_holder">
 			</div>
 			<div id="controls">
 				<button id="add_ten">Add ten more</button>
 				<button id="nth_show">Show only every Nth</button>
 				<select id="nth_select">
-					<option value="1" selected>1 (show all)</option>
+					<option value="1" selected>1 (show all loaded)</option>
 					<option value="2">2</option>
 					<option value="3">3</option>
 					<option value="4">4</option>
