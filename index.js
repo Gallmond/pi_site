@@ -30,124 +30,136 @@ app.use((req, res, next)=>{
    });
 });
 
-// in memory images
-inMemoryImageStore = {
-	updated: new Date().valueOf(),
-	mostRecentImages: []
+
+inMemoryBuckets = {
+	buckets:{},
+	lastUpdated: new Date().valueOf(),
+	totalImages:0,
 };
 
-// update images if needed
-app.use((req, res, next)=>{
-	updateImages();
-	next();
-});
-
-// on first load
-updateImages(true);
-
-
-function setImages(_keysArray){
-	inMemoryImageStore.mostRecentImages = _keysArray;
-	inMemoryImageStore.updated = new Date().valueOf();
-}
-function updateImages(_force){
+function getBucketNames(){
 	return new Promise((resolve, reject)=>{
-
-		var now = new Date().valueOf();
-		if(inMemoryImageStore.updated > now - (1000*60*60) && _force!=true ){ // one hours
-			var dateFromTS = new Date(inMemoryImageStore.updated).toUTCString();
-			console.log("images keys were recently cached ["+dateFromTS+"]");
-			return false;
-		}else{
-			console.log("fetching more recent keys");
-		}
-
-		// ==== get existing buckets
-		allKeys = [];
+		var bucketNameArray = [];
+		// get existing buckets
 		s3.listBuckets({}, function(err, data) {
-			if(err){console.log(err, err.stack);return false;}
-
+			if(err){
+				console.log(err, err.stack);
+				return reject({error:"error during getBucketNames", details:err});
+			}
 			// reverse throuch the buckets (ie, most recent is 0)
 			for (var bi = data.Buckets.length - 1; bi >= 0; --bi){
 				Bucket = data.Buckets[bi];
+				bucketNameArray.push(Bucket.Name);
+			}
+			return resolve({success:"retrieved buckets", data:bucketNameArray});
+		});
+	});
+}// getBucketNames end
+function getBucketKeys(_bucketName){
+	return new Promise((resolve, reject)=>{
+		var keysArray = [];
+		var params = {
+			Bucket: _bucketName
+		};
+		s3.listObjectsV2(params, function(err, data) {
+			if(err){
+				console.log(err, err.stack);
+				return reject({error:"error during getBucketKeys", details:err});
+			}
+
+			// reverse throuch the contents (ie, most recent is 0)
+			for (var ci = data.Contents.length - 1; ci >= 0; --ci){
+				storedObject = data.Contents[ci];
+				keysArray.push(storedObject.Key);
+			}// for each object end
+
+			return resolve({success:"retrieved keys", data:keysArray, input:_bucketName});
+		});
+	});
+}// getBucketKeysEnd
+function populateInMemoryBuckets(_force){
+	return new Promise((resolve, reject)=>{
+
+		var now = new Date().valueOf();
+
+		// check if it's been at least an hour since the last contents check
+		if(inMemoryBuckets.lastUpdated > now - (1000*60*60) && _force!="true"){
+			return resolve({success:"bucket contents were recently fetched", data:inMemoryBuckets});
+		};
+
+		// get all buckets
+		getBucketNames().then((obj)=>{
+			// getBucketNames resolve
+			var bucketNamesArr = obj.data;
+
+			var keysPromises = [];
+			for (var i = 0; i < bucketNamesArr.length; i++) {
 				// skip static
-				if(Bucket.Name=="gavin.taraplantwatcher.img.static"){
+				if(bucketNamesArr[i].split(".").indexOf("static") != -1){
 					continue;
 				}
+				// retrieve keys for this bucket
+				keysPromises.push(getBucketKeys(bucketNamesArr[i]));
+			}
 
-				// ==== get all keys in this bucket
-				var params = {
-					Bucket: Bucket.Name
+			// for the keypromises
+			Promise.all(keysPromises).then((objAr)=>{
+				for (var i = 0; i < objAr.length; i++) {
+					var keysArr = objAr[i].data;
+					var bucketName = objAr[i].input;
+					inMemoryBuckets.buckets[bucketName] = keysArr;
+					inMemoryBuckets.totalImages+= keysArr.length;
 				};
-				s3.listObjects(params, function(err, data) {
-					if(err){console.log(err, err.stack);return false;}
+				inMemoryBuckets.lastUpdated = now;
+				return resolve({success:"bucket contents were newly fetched", data:inMemoryBuckets})
+			},(obj)=>{
+				// a key promise failed
+				return reject(obj);
+			});
 
-					// reverse throuch the contents (ie, most recent is 0)
-					for (var ci = data.Contents.length - 1; ci >= 0; --ci){
-						storedObject = data.Contents[ci];
-						var toPush = {bucket:data.Name, key:storedObject.Key};
-						console.log("adding: ", toPush);
-						allKeys.push(toPush);
-
-						if(ci==0){
-							setImages(allKeys);
-							return resolve({success:"forced refresh"});
-						}
-					}// for each object end
-				});
-			}// for each bucket end
-
-			return true;
-
-		});// list buckets end
+		},(obj)=>{
+			// getBucketNames reject
+			return reject(obj);
+		});
 
 	});
-}
+}// getBucketContents end
 
 
 
-// ==== routing start
+
 // ==== routing start
 app.get('/', (req,res)=>{
 	console.log("hello");
 	res.send("hello");
 });
 
+
 app.get('/home', (req,res)=>{
 
-	if(req.query.refresh == "true"){
-		updateImages(true).then((resOb, rejOb)=>{
-			// resolve
-			res.render("index_v2", {imageInfo:inMemoryImageStore});
-		});
+	console.log("req.query", req.query);
 
-	}else{
-		res.render("index_v2", {imageInfo:inMemoryImageStore});	
-	}
+	populateInMemoryBuckets(req.query.refresh).then((obj)=>{
+		// populateInMemoryBuckets resolved
+		//res.send("loaded buckets");
+		res.render("index", {inMemoryBuckets:inMemoryBuckets});
 	
+	},(obj)=>{
+		// populateInMemoryBuckets rejected
+		console.log("error loading buckets on request", obj);
+		res.send("error loading buckets on request");
+	});
+
+
 });
 
-app.get('/home_v1', (req,res)=>{
-
-	if(req.query.refresh == "true"){
-		updateImages(true).then((resOb, rejOb)=>{
-			// resolve
-			res.render("index_v1", {imageInfo:inMemoryImageStore});
-		});
-
-	}else{
-		res.render("index_v1", {imageInfo:inMemoryImageStore});	
-	}
-	
-	
-});
 
 // any uncaptured ones
 app.get('*', function (req, res) {
 	res.status(404).send("page not found");
 })
 // ==== routing end
-// ==== routing end
+
 
 
 // ==== start listening
