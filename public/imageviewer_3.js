@@ -1,20 +1,19 @@
 document.addEventListener('DOMContentLoaded', ()=>{ 
 
-window.imgCache = <%- JSON.stringify(inMemoryBuckets) %>;
-console.log(window.imgCache);
+	window.imgCache = <%- JSON.stringify(inMemoryBuckets) %>;
 
-var options = {
-	containerDiv: "viewer_container",
-	controlsDiv: "viewer_controls",
-	defaultRange: 10,
-	img_width: 640,
-	img_height: 480,
+	var options = {
+		containerDiv: "viewer_container",
+		controlsDiv: "viewer_controls",
+		defaultRange: 10,
+		img_width: 640,
+		img_height: 480,
 
-	loadOnViewOnly: true, 
-	// true: only loads image src when it would be displayed on-screen.
-	// false: loads image sources as soon as the range is set
-}
-window.lightBox = new lightBoxClass(options);
+		loadOnViewOnly: true, 
+		// true: only loads image src when it would be displayed on-screen.
+		// false: loads image sources as soon as the range is set
+	}
+	window.lightBox = new lightBoxClass(options);
 
 
 });// DOMContentLoaded end
@@ -27,11 +26,9 @@ function lightBoxClass(_options){
 	this.containerDiv = document.getElementById(this.options.containerDiv);
 	this.controlsDiv = document.getElementById(this.options.controlsDiv);
 
-
-	this.totalImages = window.imgCache.totalImages;
-	this.viewableTags = [];
-	this.keys = [];
-
+	// sizing
+	this.containerDiv.style.height = this.options.img_height+"px";
+	this.containerDiv.style.width = this.options.img_width+"px";
 
 	// show loader
 	this.loadingPanel = document.createElement('img');
@@ -42,13 +39,98 @@ function lightBoxClass(_options){
 	this.containerDiv.appendChild(this.loadingPanel);
 
 
+	// create controls
+	// ==================== show noon this month
+	var thisMonthButton  = document.createElement('button');
+	thisMonthButton.innerHTML = "Show noon every day last 30 days";
+	thisMonthButton.addEventListener("click", (e)=>{
+		e.stopPropagation();
+		// create ranges
+		var now = new Date();
+		var ranges = [];
+		for (var i = 0; i < 30; i++) {
+			var timeDiff = (1000*60*60*24)*i;
+			var thisFrom = new Date( now.valueOf() - timeDiff );
+			thisFrom.setUTCHours(11,0,0); // 0-23
+
+			var thisTo = new Date( now.valueOf() - timeDiff );
+			thisTo.setUTCHours(12,0,0);
+
+			ranges.push({from:thisFrom.valueOf(), to:thisTo.valueOf(), num:1});
+		};
+		this.displayRanges(ranges);
+	}, false);
+	this.controlsDiv.appendChild(thisMonthButton);
+	// ==================== show noon this month end
+
+	// ======= show range form
+	var datePickerForm = document.createElement('form');
+	var toDatePicker = document.createElement('input'); // <input type="date" id="cal">
+	var fromDatePicker = document.createElement('input');
+	var toDatePickerLabel = document.createElement('label'); 
+	var fromDatePickerLabel = document.createElement('label');
+	var formSubmit = document.createElement('button');
+	formSubmit.innerHTML = "Show range";
+	formSubmit.type = "submit";
+	toDatePicker.type = "date";
+	toDatePicker.id = "to_cal";
+	fromDatePicker.type = "date";
+	fromDatePicker.id = "from_cal";
+	toDatePickerLabel.htmlFor = "to_cal";
+	toDatePickerLabel.innerHTML = "Select range end";
+	fromDatePickerLabel.htmlFor = "from_cal";
+	fromDatePickerLabel.innerHTML = "Select range start";
+	datePickerForm.id = "showrange_form";
+	datePickerForm.appendChild(fromDatePickerLabel);
+	datePickerForm.appendChild(fromDatePicker);
+	datePickerForm.appendChild(toDatePickerLabel);
+	datePickerForm.appendChild(toDatePicker);
+	datePickerForm.appendChild(formSubmit);
+	datePickerForm.addEventListener("submit", (e)=>{
+		e.preventDefault();
+		e.stopPropagation();
+
+		// get date strings (yyyy-mm-dd);
+		var fromVal = document.getElementById("from_cal").value;
+		var toVal = document.getElementById("to_cal").value;
+
+		var jsFrom = new Date();
+		jsFrom.setFullYear( parseInt(fromVal.split("-")[0]), parseInt(fromVal.split("-")[1] - 1), parseInt(fromVal.split("-")[2]) );
+		jsFrom.setUTCHours(11,0,0);
+		
+		var jsTo = new Date();
+		jsTo.setFullYear( parseInt(toVal.split("-")[0]), parseInt(toVal.split("-")[1] - 1), parseInt(toVal.split("-")[2]) );
+		jsTo.setUTCHours(12,0,0);
+
+		var daysDiff = Math.round((jsTo - jsFrom)/(1000*60*60*24));
+
+		var ranges = [];
+		for (var i = 0; i <= daysDiff; i++) {
+			var timeDiff = (1000*60*60*24)*i;
+			var thisFrom = new Date( jsFrom.valueOf() + timeDiff );
+			thisFrom.setUTCHours(11,0,0); // 0-23
+
+			var thisTo = new Date( jsFrom.valueOf() + timeDiff );
+			thisTo.setUTCHours(12,0,0);
+
+			ranges.push({from:thisFrom.valueOf(), to:thisTo.valueOf(), num:1});
+		};
+		ranges.reverse();
+		this.displayRanges(ranges);
+
+	}, false);
+
+	this.controlsDiv.appendChild(datePickerForm);
+	// ======= show range form END
+
+
+	this.viewableTags = [];
+	this.keys = [];
+
 	// hide
 	this.containerDiv.style.display = "hidden";
-
-
-	// insert a tag for every image
 	var imageCount = 0;
-	for(var bucketName in this.imgCache.buckets){
+	for(var bucketName in this.imgCache.buckets){ // insert a blank tag for every image
 		for (var i = 0; i < this.imgCache.buckets[bucketName].length; i++) {
 			this.keys.push(this.imgCache.buckets[bucketName][i]);
 			var srcString = "https://s3.eu-west-2.amazonaws.com/"+bucketName+"/"+this.imgCache.buckets[bucketName][i];
@@ -89,27 +171,46 @@ function lightBoxClass(_options){
 		this.viewableTags = [];
 		console.log("cleared viewableTags");
 	}
-	this.displayRange = (_timestamp1, _timestamp2)=>{
+	this.displayRanges = (_arrayOfRanges)=>{ // range like [{to: 123456, from: 987654, num: 5}, ... ];
 		this.clearViewable();
-		var from  = (_timestamp1 < _timestamp2 ? _timestamp1 : _timestamp2);
-		var to = (_timestamp1 > _timestamp2 ? _timestamp1 : _timestamp2);
-		var jsFrom = new Date(from);
-		var jsTo = new Date(to);
-		console.log("jsFrom", jsFrom);
-		console.log("jsTo", jsTo);
-		// ream through all keys (starting most recent, and compare dates
-		for (var i = 0; i < this.keys.length; i++) {
-			var keyJSDate = this.jsDateFromKey(this.keys[i]);
-			console.log("keyJSDate", keyJSDate);
+		var useTheseKeys = [];
+		// for all ranges
+		for (var ii = 0; ii < _arrayOfRanges.length; ii++) {
+			var jsFrom = new Date(_arrayOfRanges[ii].from);
+			var jsTo = new Date(_arrayOfRanges[ii].to); 
+			console.log("checking range:", ii);
+			console.log("jsFrom:", jsFrom);
+			console.log("jsTo:", jsTo);
 
-			if(keyJSDate < jsTo){ // now in range
-				this.viewableTags.push( this.getTagFromKey(this.keys[i]) );
-			} 
-
-			if(keyJSDate < from){ // now out of range
-				break;
+			// validity check			
+			if( (_arrayOfRanges[ii].from == undefined ) || (_arrayOfRanges[ii].to == undefined ) || (_arrayOfRanges[ii].num == undefined ) || ( !jsFrom.valueOf() ) || ( !jsTo.valueOf() ) ){
+				console.log("invalid range object:", _arrayOfRanges[ii])
+				return false;
 			}
-		}
+			var maxKeysInRange = _arrayOfRanges[ii].num;
+			var keysInThisRange = 0;
+			// check keys in this range
+			for (var i = 0; i < this.keys.length; i++) {
+				var thisKey = this.keys[i];
+				var jsKey = this.jsDateFromKey(thisKey);
+				// if this range filled, skip
+				if( keysInThisRange >= maxKeysInRange ){
+					break;
+				}
+				// if in range
+				if( (jsKey < jsTo) && (jsKey > jsFrom) ){
+					console.log("added key to viewableTags:", thisKey);
+					if(useTheseKeys.indexOf(thisKey)== -1){
+						useTheseKeys.push(thisKey)	
+						keysInThisRange++;
+					}
+				}
+			};
+		};
+		// populate viewable
+		for (var i = 0; i < useTheseKeys.length; i++) {
+			this.viewableTags.push( this.getTagFromKey( useTheseKeys[i] ) );
+		};
 		// load now if poss
 		if(!this.loadOnViewOnly){
 			for (var i = 0; i < this.viewableTags.length; i++) {
@@ -128,11 +229,11 @@ function lightBoxClass(_options){
 			this.loadSrc( this.viewableTags[_segment] );	
 		}
 		this.viewableTags[_segment].style.display = "";
-		console.log("show tag", _segment);
+		// temp show date
+		document.getElementById("currentkey_date").innerHTML = this.jsDateFromKey( this.viewableTags[_segment].dataset.key ).toUTCString();
 	}
 	this.hide = (_segment)=>{
 		this.viewableTags[_segment].style.display = "none";
-		console.log("hide tag", _segment);
 	}
 
 
@@ -157,6 +258,11 @@ function lightBoxClass(_options){
 		debug("x:"+x+" segCount:"+this.viewableTags.length+" sizeSeg:"+segment_size+" calcSec:"+cursor_segment+" inverted:"+segmentToUse);
 		// can this segment be displayed?
 		if(segmentToUse != this.lastseg){
+			// if lastseg is out of range, reset it
+			if(this.lastseg >= this.viewableTags.length){
+				this.lastseg = this.viewableTags.length-1;
+			}
+
 			this.show(segmentToUse);
 			this.hide(this.lastseg);
 			this.lastseg = segmentToUse;

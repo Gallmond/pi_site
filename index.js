@@ -33,7 +33,7 @@ app.use((req, res, next)=>{
 
 inMemoryBuckets = {
 	buckets:{},
-	lastUpdated: new Date().valueOf(),
+	lastUpdated:0,
 	totalImages:0,
 };
 
