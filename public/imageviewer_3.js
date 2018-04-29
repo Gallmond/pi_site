@@ -89,37 +89,29 @@ function lightBoxClass(_options){
 	datePickerForm.addEventListener("submit", (e)=>{
 		e.preventDefault();
 		e.stopPropagation();
-
 		// get date strings (yyyy-mm-dd);
 		var fromVal = document.getElementById("from_cal").value;
 		var toVal = document.getElementById("to_cal").value;
-
+		// create JS dates to get day difference
 		var jsFrom = new Date();
 		jsFrom.setFullYear( parseInt(fromVal.split("-")[0]), parseInt(fromVal.split("-")[1] - 1), parseInt(fromVal.split("-")[2]) );
 		jsFrom.setUTCHours(11,0,0);
-		
 		var jsTo = new Date();
 		jsTo.setFullYear( parseInt(toVal.split("-")[0]), parseInt(toVal.split("-")[1] - 1), parseInt(toVal.split("-")[2]) );
 		jsTo.setUTCHours(12,0,0);
-
 		var daysDiff = Math.round((jsTo - jsFrom)/(1000*60*60*24));
-
 		var ranges = [];
 		for (var i = 0; i <= daysDiff; i++) {
 			var timeDiff = (1000*60*60*24)*i;
 			var thisFrom = new Date( jsFrom.valueOf() + timeDiff );
 			thisFrom.setUTCHours(11,0,0); // 0-23
-
 			var thisTo = new Date( jsFrom.valueOf() + timeDiff );
 			thisTo.setUTCHours(12,0,0);
-
 			ranges.push({from:thisFrom.valueOf(), to:thisTo.valueOf(), num:1});
 		};
 		ranges.reverse();
 		this.displayRanges(ranges);
-
 	}, false);
-
 	this.controlsDiv.appendChild(datePickerForm);
 	// ======= show range form END
 
@@ -165,9 +157,7 @@ function lightBoxClass(_options){
 	// ========= functions to alter the viewable tags
 	this.clearViewable = ()=>{
 		// hide current
-		for (var i = 0; i < this.viewableTags.length; i++) {
-			this.viewableTags[i].style.display = "none";
-		};
+		this.hideAll();
 		this.viewableTags = [];
 		console.log("cleared viewableTags");
 	}
@@ -221,9 +211,50 @@ function lightBoxClass(_options){
 		this.viewableTags[0].style.display = "";
 		console.log("updated viewableTags: "+this.viewableTags.length);
 	}
+	this.scrollInfo = {
+		prevIndex:0,
+		currentIndex:0,
+		scrollInterval:false,
+	}
+	this.toggleAutoScroll = ( _timeDelay )=>{ // autoscrolls through the visibletags
+		clearInterval(this.scrollInfo.scrollInterval);
+		if(_timeDelay == false){
+			return true;
+		}
+
+		this.hideAll();
+		// start at oldest.
+		this.scrollInfo.currentIndex = this.viewableTags.length-1;
+		console.log("this.scrollInfo", this.scrollInfo);
+		this.show( this.scrollInfo.currentIndex );
+		this.scrollInfo.scrollInterval = setInterval(()=>{
+
+			this.hideAll();
+
+			// display next,
+			var prevIndex = this.scrollInfo.currentIndex; 
+			var newIndex = this.scrollInfo.currentIndex - 1;
+			if(newIndex<0) newIndex = this.viewableTags.length-1;
+			this.show(newIndex);
+
+			// hide prev
+			this.hide(prevIndex);
+
+			// update thing
+			this.scrollInfo.prevIndex = prevIndex;
+			this.scrollInfo.currentIndex = newIndex;
+
+		}, _timeDelay, this.viewableTags);
+
+	}
 
 
 	// ========= functions to load/display a tag
+	this.hideAll = ()=>{
+		for (var i = 0; i < this.viewableTags.length; i++) {
+			this.viewableTags[i].style.display = "none";
+		};
+	}
 	this.show = (_segment)=>{
 		if(this.viewableTags[_segment].src==undefined || this.viewableTags[_segment].src==""){
 			this.loadSrc( this.viewableTags[_segment] );	
