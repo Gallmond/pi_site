@@ -2,12 +2,15 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
 	window.imgCache = <%- JSON.stringify(inMemoryBuckets) %>;
 
+
+
 	var options = {
 		containerDiv: "viewer_container",
 		controlsDiv: "viewer_controls",
 		defaultRange: 10,
 		img_width: 640,
 		img_height: 480,
+		debug:true,
 
 		loadOnViewOnly: true, 
 		// true: only loads image src when it would be displayed on-screen.
@@ -42,7 +45,7 @@ function lightBoxClass(_options){
 	// create controls
 	// ==================== show noon this month
 	var thisMonthButton  = document.createElement('button');
-	thisMonthButton.innerHTML = "Show noon every day last 30 days";
+	thisMonthButton.innerHTML = "Noon last 30 days!";
 	thisMonthButton.addEventListener("click", (e)=>{
 		e.stopPropagation();
 		// create ranges
@@ -60,16 +63,22 @@ function lightBoxClass(_options){
 		};
 		this.displayRanges(ranges);
 	}, false);
-	this.controlsDiv.appendChild(thisMonthButton);
 	// ==================== show noon this month end
 
-	// ======= show range form
+
+	// ======= show daily range form
 	var datePickerForm = document.createElement('form');
 	var toDatePicker = document.createElement('input'); // <input type="date" id="cal">
 	var fromDatePicker = document.createElement('input');
 	var toDatePickerLabel = document.createElement('label'); 
 	var fromDatePickerLabel = document.createElement('label');
 	var formSubmit = document.createElement('button');
+	var displayTimeRangeCheckBox = document.createElement('input'); // <input id="checkBox" type="checkbox">
+	var displayTimeRangeCheckBoxLabel = document.createElement('label');
+	displayTimeRangeCheckBox.type = "checkbox";
+	displayTimeRangeCheckBox.id = "all_or_none";
+	displayTimeRangeCheckBoxLabel.innerHTML = "Show all images?"
+	displayTimeRangeCheckBoxLabel.htmlFor = "all_or_none";
 	formSubmit.innerHTML = "Show range";
 	formSubmit.type = "submit";
 	toDatePicker.type = "date";
@@ -82,9 +91,17 @@ function lightBoxClass(_options){
 	fromDatePickerLabel.innerHTML = "Select range start";
 	datePickerForm.id = "showrange_form";
 	datePickerForm.appendChild(fromDatePickerLabel);
+	datePickerForm.appendChild(document.createElement('br'));
 	datePickerForm.appendChild(fromDatePicker);
+	datePickerForm.appendChild(document.createElement('br'));
 	datePickerForm.appendChild(toDatePickerLabel);
+	datePickerForm.appendChild(document.createElement('br'));
 	datePickerForm.appendChild(toDatePicker);
+	datePickerForm.appendChild(document.createElement('br'));
+	datePickerForm.appendChild(displayTimeRangeCheckBox);
+	datePickerForm.appendChild(document.createElement('br'));
+	datePickerForm.appendChild(displayTimeRangeCheckBoxLabel);
+	datePickerForm.appendChild(document.createElement('br'));
 	datePickerForm.appendChild(formSubmit);
 	datePickerForm.addEventListener("submit", (e)=>{
 		e.preventDefault();
@@ -92,28 +109,43 @@ function lightBoxClass(_options){
 		// get date strings (yyyy-mm-dd);
 		var fromVal = document.getElementById("from_cal").value;
 		var toVal = document.getElementById("to_cal").value;
+		var showAll = document.getElementById("all_or_none").checked;
+		if(fromVal=="" || toVal==""){
+			return false;
+		}
 		// create JS dates to get day difference
 		var jsFrom = new Date();
 		jsFrom.setFullYear( parseInt(fromVal.split("-")[0]), parseInt(fromVal.split("-")[1] - 1), parseInt(fromVal.split("-")[2]) );
-		jsFrom.setUTCHours(11,0,0);
+		jsFrom.setUTCHours(12,0,0);
 		var jsTo = new Date();
 		jsTo.setFullYear( parseInt(toVal.split("-")[0]), parseInt(toVal.split("-")[1] - 1), parseInt(toVal.split("-")[2]) );
 		jsTo.setUTCHours(12,0,0);
+
 		var daysDiff = Math.round((jsTo - jsFrom)/(1000*60*60*24));
 		var ranges = [];
 		for (var i = 0; i <= daysDiff; i++) {
+			var numToShow = 1;
 			var timeDiff = (1000*60*60*24)*i;
 			var thisFrom = new Date( jsFrom.valueOf() + timeDiff );
 			thisFrom.setUTCHours(11,0,0); // 0-23
 			var thisTo = new Date( jsFrom.valueOf() + timeDiff );
 			thisTo.setUTCHours(12,0,0);
-			ranges.push({from:thisFrom.valueOf(), to:thisTo.valueOf(), num:1});
+			if(showAll){
+				numToShow = 99;
+				thisFrom.setUTCHours(0,0,0); // 0-23
+				thisTo.setUTCHours(23,0,0); // 0-23
+			}
+			ranges.push({from:thisFrom.valueOf(), to:thisTo.valueOf(), num:numToShow});
 		};
 		ranges.reverse();
 		this.displayRanges(ranges);
 	}, false);
-	this.controlsDiv.appendChild(datePickerForm);
 	// ======= show range form END
+
+
+	// put controls in
+	this.controlsDiv.appendChild(thisMonthButton);
+	this.controlsDiv.appendChild(datePickerForm);
 
 
 	this.viewableTags = [];
