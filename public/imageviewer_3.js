@@ -114,16 +114,28 @@ function lightBoxClass(_options){
 		displayTimeRangeCheckBox.id = "all_or_none";
 		displayTimeRangeCheckBoxLabel.innerHTML = "Show all images?"
 		displayTimeRangeCheckBoxLabel.htmlFor = "all_or_none";
+		displayTimeRangeCheckBoxLabel.style.fontSize = "2em";
 		formSubmit.innerHTML = "Show range";
 		formSubmit.type = "submit";
+		formSubmit.style.height = "50px";
+		formSubmit.style.width = "100%";
+
 		toDatePicker.type = "date";
 		toDatePicker.id = "to_cal";
+		toDatePicker.style.width = "100%";
+		toDatePicker.style.height = "50px";
+		toDatePicker.style.textAlign = "center";
 		fromDatePicker.type = "date";
 		fromDatePicker.id = "from_cal";
+		fromDatePicker.style.width = "100%";
+		fromDatePicker.style.height = "50px";
+		fromDatePicker.style.textAlign = "center";
 		toDatePickerLabel.htmlFor = "to_cal";
 		toDatePickerLabel.innerHTML = "Select range end";
+		toDatePickerLabel.style.fontSize = "2em";
 		fromDatePickerLabel.htmlFor = "from_cal";
 		fromDatePickerLabel.innerHTML = "Select range start";
+		fromDatePickerLabel.style.fontSize = "2em";
 		datePickerForm.id = "showrange_form";
 		datePickerForm.addEventListener("submit", (e)=>{
 			e.preventDefault();
