@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 		defaultRange: 10,
 		img_width: calcWidth,
 		img_height: calcHeight,
-		debug:true,
+		debug:false,
 
 		loadOnViewOnly: true, 
 		// true: only loads image src when it would be displayed on-screen.
