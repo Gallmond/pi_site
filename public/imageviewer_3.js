@@ -395,11 +395,19 @@ function lightBoxClass(_options){
 
 	// ======== add mouseover logic
 	this.lastseg = 0;
-	this.containerDiv.addEventListener("mousemove", (e)=>{
+	this.moveLogic = (e)=>{
 		e.stopPropagation(); // prevent bubbling
 		var rect = e.target.getBoundingClientRect();
-		var x = e.clientX - rect.left; //x position within the element.
+
+		// if touch
+		if(e.type == "touchmove"){
+			var x = e.changedTouches[0].clientX - rect.left; //x position within the element.
+		}else{
+			var x = e.clientX - rect.left; //x position within the element.
+		}
+		
 		x = Math.ceil(x);
+
 		// % of distance along the line the point is
 		var cursor_pt = ((x/this.options.img_width)*100); // where IMAGE_WIDTH is line length
 		cursor_pt = Math.ceil(cursor_pt); // rounded up
@@ -423,7 +431,9 @@ function lightBoxClass(_options){
 			this.hide(this.lastseg);
 			this.lastseg = segmentToUse;
 		}
-	}, false);
+	};
+	this.containerDiv.addEventListener("mousemove", this.moveLogic, false);
+	this.containerDiv.addEventListener("touchmove", this.moveLogic, false);
 
 
 	// ======== imcache manip functions
