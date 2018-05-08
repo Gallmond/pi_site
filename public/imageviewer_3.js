@@ -41,111 +41,170 @@ function lightBoxClass(_options){
 	this.loadingPanel.style.position = "absolute";
 	this.containerDiv.appendChild(this.loadingPanel);
 
+	// controls state
+	this.isScrolling = false;
 
-	// create controls
-	// ==================== show noon this month
-	var thisMonthButton  = document.createElement('button');
-	thisMonthButton.innerHTML = "Noon last 30 days!";
-	thisMonthButton.addEventListener("click", (e)=>{
-		e.stopPropagation();
-		// create ranges
-		var now = new Date();
-		var ranges = [];
-		for (var i = 0; i < 30; i++) {
-			var timeDiff = (1000*60*60*24)*i;
-			var thisFrom = new Date( now.valueOf() - timeDiff );
-			thisFrom.setUTCHours(11,0,0); // 0-23
+	// make the controls
+	this.createControlsDivs = ()=>{
 
-			var thisTo = new Date( now.valueOf() - timeDiff );
-			thisTo.setUTCHours(12,0,0);
+		// make the timestamp container and add it to the controls container
+		var currentTimestampHolder = document.createElement('span');
+		currentTimestampHolder.id = "currentkey_date";
+		currentTimestampHolder.style.width = "100%";
+		this.controlsDiv.appendChild(currentTimestampHolder);
 
-			ranges.push({from:thisFrom.valueOf(), to:thisTo.valueOf(), num:1});
-		};
-		this.displayRanges(ranges);
-	}, false);
-	// ==================== show noon this month end
+		// bar to contain the 30 day and autoscroll buttons
+		var buttonsContainer = document.createElement('div');
+		buttonsContainer.style.width = "100%";
+		this.controlsDiv.appendChild(buttonsContainer);
 
+		// button to show noon this month
+		var thisMonthButton  = document.createElement('button');
+		thisMonthButton.innerHTML = "30 days";
+		thisMonthButton.style.height = "50px";
+		thisMonthButton.style.width = "50%";
+		thisMonthButton.addEventListener("click", (e)=>{
+			e.stopPropagation();
+			// create ranges
+			var now = new Date();
+			var ranges = [];
+			for (var i = 0; i < 30; i++) {
+				var timeDiff = (1000*60*60*24)*i;
+				var thisFrom = new Date( now.valueOf() - timeDiff );
+				thisFrom.setUTCHours(11,0,0); // 0-23
 
-	// ======= show daily range form
-	var datePickerForm = document.createElement('form');
-	var toDatePicker = document.createElement('input'); // <input type="date" id="cal">
-	var fromDatePicker = document.createElement('input');
-	var toDatePickerLabel = document.createElement('label'); 
-	var fromDatePickerLabel = document.createElement('label');
-	var formSubmit = document.createElement('button');
-	var displayTimeRangeCheckBox = document.createElement('input'); // <input id="checkBox" type="checkbox">
-	var displayTimeRangeCheckBoxLabel = document.createElement('label');
-	displayTimeRangeCheckBox.type = "checkbox";
-	displayTimeRangeCheckBox.id = "all_or_none";
-	displayTimeRangeCheckBoxLabel.innerHTML = "Show all images?"
-	displayTimeRangeCheckBoxLabel.htmlFor = "all_or_none";
-	formSubmit.innerHTML = "Show range";
-	formSubmit.type = "submit";
-	toDatePicker.type = "date";
-	toDatePicker.id = "to_cal";
-	fromDatePicker.type = "date";
-	fromDatePicker.id = "from_cal";
-	toDatePickerLabel.htmlFor = "to_cal";
-	toDatePickerLabel.innerHTML = "Select range end";
-	fromDatePickerLabel.htmlFor = "from_cal";
-	fromDatePickerLabel.innerHTML = "Select range start";
-	datePickerForm.id = "showrange_form";
-	datePickerForm.appendChild(fromDatePickerLabel);
-	datePickerForm.appendChild(document.createElement('br'));
-	datePickerForm.appendChild(fromDatePicker);
-	datePickerForm.appendChild(document.createElement('br'));
-	datePickerForm.appendChild(toDatePickerLabel);
-	datePickerForm.appendChild(document.createElement('br'));
-	datePickerForm.appendChild(toDatePicker);
-	datePickerForm.appendChild(document.createElement('br'));
-	datePickerForm.appendChild(displayTimeRangeCheckBox);
-	datePickerForm.appendChild(document.createElement('br'));
-	datePickerForm.appendChild(displayTimeRangeCheckBoxLabel);
-	datePickerForm.appendChild(document.createElement('br'));
-	datePickerForm.appendChild(formSubmit);
-	datePickerForm.addEventListener("submit", (e)=>{
-		e.preventDefault();
-		e.stopPropagation();
-		// get date strings (yyyy-mm-dd);
-		var fromVal = document.getElementById("from_cal").value;
-		var toVal = document.getElementById("to_cal").value;
-		var showAll = document.getElementById("all_or_none").checked;
-		if(fromVal=="" || toVal==""){
-			return false;
-		}
-		// create JS dates to get day difference
-		var jsFrom = new Date();
-		jsFrom.setFullYear( parseInt(fromVal.split("-")[0]), parseInt(fromVal.split("-")[1] - 1), parseInt(fromVal.split("-")[2]) );
-		jsFrom.setUTCHours(12,0,0);
-		var jsTo = new Date();
-		jsTo.setFullYear( parseInt(toVal.split("-")[0]), parseInt(toVal.split("-")[1] - 1), parseInt(toVal.split("-")[2]) );
-		jsTo.setUTCHours(12,0,0);
+				var thisTo = new Date( now.valueOf() - timeDiff );
+				thisTo.setUTCHours(12,0,0);
 
-		var daysDiff = Math.round((jsTo - jsFrom)/(1000*60*60*24));
-		var ranges = [];
-		for (var i = 0; i <= daysDiff; i++) {
-			var numToShow = 1;
-			var timeDiff = (1000*60*60*24)*i;
-			var thisFrom = new Date( jsFrom.valueOf() + timeDiff );
-			thisFrom.setUTCHours(11,0,0); // 0-23
-			var thisTo = new Date( jsFrom.valueOf() + timeDiff );
-			thisTo.setUTCHours(12,0,0);
-			if(showAll){
-				numToShow = 99;
-				thisFrom.setUTCHours(0,0,0); // 0-23
-				thisTo.setUTCHours(23,0,0); // 0-23
+				ranges.push({from:thisFrom.valueOf(), to:thisTo.valueOf(), num:1});
+			};
+			this.displayRanges(ranges);
+		}, false);
+		buttonsContainer.appendChild(thisMonthButton);
+
+		// button to control autoscroll
+		var toggleAutoScrollButton = document.createElement('button');
+		toggleAutoScrollButton.innerHTML = "Auto scroll";
+		toggleAutoScrollButton.style.height = "50px";
+		toggleAutoScrollButton.style.width = "50%";
+		toggleAutoScrollButton.addEventListener("click", (e)=>{
+			e.stopPropagation();
+			var thisButton = e.target;
+			if(this.isScrolling){// is on, turn off
+				this.toggleAutoScroll(false);
+				thisButton.style.border = "2px outset";
+			}else{// is off, turn on
+				this.toggleAutoScroll(333);
+				thisButton.style.border = "2px inset";
 			}
-			ranges.push({from:thisFrom.valueOf(), to:thisTo.valueOf(), num:numToShow});
-		};
-		ranges.reverse();
-		this.displayRanges(ranges);
-	}, false);
-	// ======= show range form END
+			this.isScrolling = !this.isScrolling;
+		}, false);
+		buttonsContainer.appendChild(toggleAutoScrollButton);
+
+		// RANGE FORM START
+		var datePickerForm = document.createElement('form');
+		var toDatePicker = document.createElement('input'); // <input type="date" id="cal">
+		var fromDatePicker = document.createElement('input');
+		var toDatePickerLabel = document.createElement('label'); 
+		var fromDatePickerLabel = document.createElement('label');
+		var formSubmit = document.createElement('button');
+		var displayTimeRangeCheckBox = document.createElement('input'); // <input id="checkBox" type="checkbox">
+		var displayTimeRangeCheckBoxLabel = document.createElement('label');
+		displayTimeRangeCheckBox.type = "checkbox";
+		displayTimeRangeCheckBox.id = "all_or_none";
+		displayTimeRangeCheckBoxLabel.innerHTML = "Show all images?"
+		displayTimeRangeCheckBoxLabel.htmlFor = "all_or_none";
+		formSubmit.innerHTML = "Show range";
+		formSubmit.type = "submit";
+		toDatePicker.type = "date";
+		toDatePicker.id = "to_cal";
+		fromDatePicker.type = "date";
+		fromDatePicker.id = "from_cal";
+		toDatePickerLabel.htmlFor = "to_cal";
+		toDatePickerLabel.innerHTML = "Select range end";
+		fromDatePickerLabel.htmlFor = "from_cal";
+		fromDatePickerLabel.innerHTML = "Select range start";
+		datePickerForm.id = "showrange_form";
+		datePickerForm.addEventListener("submit", (e)=>{
+			e.preventDefault();
+			e.stopPropagation();
+			// get date strings (yyyy-mm-dd);
+			var fromVal = document.getElementById("from_cal").value;
+			var toVal = document.getElementById("to_cal").value;
+			var showAll = document.getElementById("all_or_none").checked;
+			if(fromVal=="" || toVal==""){
+				return false;
+			}
+			// create JS dates to get day difference
+			var jsFrom = new Date();
+			jsFrom.setFullYear( parseInt(fromVal.split("-")[0]), parseInt(fromVal.split("-")[1] - 1), parseInt(fromVal.split("-")[2]) );
+			jsFrom.setUTCHours(12,0,0);
+			var jsTo = new Date();
+			jsTo.setFullYear( parseInt(toVal.split("-")[0]), parseInt(toVal.split("-")[1] - 1), parseInt(toVal.split("-")[2]) );
+			jsTo.setUTCHours(12,0,0);
+
+			var daysDiff = Math.round((jsTo - jsFrom)/(1000*60*60*24));
+			var ranges = [];
+			for (var i = 0; i <= daysDiff; i++) {
+				var numToShow = 1;
+				var timeDiff = (1000*60*60*24)*i;
+				var thisFrom = new Date( jsFrom.valueOf() + timeDiff );
+				thisFrom.setUTCHours(11,0,0); // 0-23
+				var thisTo = new Date( jsFrom.valueOf() + timeDiff );
+				thisTo.setUTCHours(12,0,0);
+				if(showAll){
+					numToShow = 99;
+					thisFrom.setUTCHours(0,0,0); // 0-23
+					thisTo.setUTCHours(23,0,0); // 0-23
+				}
+				ranges.push({from:thisFrom.valueOf(), to:thisTo.valueOf(), num:numToShow});
+			};
+			ranges.reverse();
+			this.displayRanges(ranges);
+		}, false);
+
+		// build form divs
+		var top_left_div = document.createElement('div');
+		top_left_div.appendChild(fromDatePickerLabel);
+		top_left_div.appendChild(document.createElement('br'));
+		top_left_div.appendChild(fromDatePicker);
+		top_left_div.style.width = "50%";
+		top_left_div.style.padding = "5px";
+		top_left_div.style.display = "inline-block";
+
+		var top_right_div = document.createElement('div');
+		top_right_div.appendChild(toDatePickerLabel);
+		top_right_div.appendChild(document.createElement('br'));
+		top_right_div.appendChild(toDatePicker);
+		top_right_div.style.width = "50%";
+		top_right_div.style.padding = "5px";
+		top_right_div.style.display = "inline-block";
+
+		var bottom_left_div = document.createElement('div');
+		bottom_left_div.appendChild(displayTimeRangeCheckBoxLabel);
+		bottom_left_div.appendChild(document.createElement('br'));
+		bottom_left_div.appendChild(displayTimeRangeCheckBox);
+		bottom_left_div.style.width = "50%";
+		bottom_left_div.style.padding = "5px";
+		bottom_left_div.style.display = "inline-block";
+
+		var bottom_right_div = document.createElement('div');
+		bottom_right_div.appendChild(formSubmit);
+		bottom_right_div.style.width = "50%";
+		bottom_right_div.style.padding = "5px";
+		bottom_right_div.style.display = "inline-block";
+
+		datePickerForm.appendChild(top_left_div);
+		datePickerForm.appendChild(top_right_div);
+		datePickerForm.appendChild(bottom_left_div);
+		datePickerForm.appendChild(bottom_right_div);
+
+		this.controlsDiv.appendChild(datePickerForm);
+		// RANGE FORM END
 
 
-	// put controls in
-	this.controlsDiv.appendChild(thisMonthButton);
-	this.controlsDiv.appendChild(datePickerForm);
+
+	};// createControlsDivsEnd
 
 
 	this.viewableTags = [];
@@ -356,6 +415,8 @@ function lightBoxClass(_options){
 			_imgTag.src = _imgTag.dataset.unloadedsrc;
 		}
 	}
+
+	this.createControlsDivs();
 
 }
 
