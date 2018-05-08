@@ -59,6 +59,13 @@ function lightBoxClass(_options){
 	// controls state
 	this.isScrolling = false;
 
+	// add debug
+	if(this.options.debug){
+		var debugBox = document.createElement('div');
+		debugBox.id = "debug";
+		document.body.appendChild(debugBox);
+	}
+
 	// make the controls
 	this.createControlsDivs = ()=>{
 
@@ -404,7 +411,7 @@ function lightBoxClass(_options){
 		segment = (segment>this.viewableTags.length?this.viewableTags.length:segment);
 		// invert segment (as the segments are number 0 being at the left)
 		var segmentToUse = (this.viewableTags.length - (segment-1))-1;
-		debug("x:"+x+" segCount:"+this.viewableTags.length+" sizeSeg:"+segment_size+" calcSec:"+cursor_segment+" inverted:"+segmentToUse);
+		if(this.options.debug) debug("x:"+x+" segCount:"+this.viewableTags.length+" sizeSeg:"+segment_size+" calcSec:"+cursor_segment+" inverted:"+segmentToUse);
 		// can this segment be displayed?
 		if(segmentToUse != this.lastseg){
 			// if lastseg is out of range, reset it
