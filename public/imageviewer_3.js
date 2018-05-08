@@ -2,14 +2,29 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
 	window.imgCache = <%- JSON.stringify(inMemoryBuckets) %>;
 
+	// calculate window width
+	var ratio = window.devicePixelRatio || 1;
+	var w = screen.width * ratio;
+	var h = screen.height * ratio;
+	console.log("ratio",ratio);
+	console.log("w",w);
+	console.log("h",h);
+
+	var calcWidth = screen.width;
+	var calcHeight = Math.round(calcWidth*0.75);
+
+	if(calcWidth > 640 || calcHeight > 480){
+		calcWidth = 640;
+		calcHeight = 480;
+	}
 
 
 	var options = {
 		containerDiv: "viewer_container",
 		controlsDiv: "viewer_controls",
 		defaultRange: 10,
-		img_width: 640,
-		img_height: 480,
+		img_width: calcWidth,
+		img_height: calcHeight,
 		debug:true,
 
 		loadOnViewOnly: true, 
